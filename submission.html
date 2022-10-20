@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<head>
+<style>
+
+path.link1 {
+  fill: none;
+  stroke: #666;
+  stroke-width: 2.5px;
+}
+path.link2 {
+  fill: none;
+  stroke: rgb(0, 200, 0);
+  stroke-width: 1px;
+  stroke-dasharray: 1em;
+  border-style: dashed;
+  
+}
+
+circle {
+  
+  stroke: #fff;
+  stroke: black;
+  stroke-width: 1.5px;
+}
+
+text {
+  fill: #000;
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+</style>
+<meta charset="utf-8">
+<title></title>
+</head>
+
+<body>
+  <h2 id="credit">mbhola3</h2>
+<script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+<script>
+
+d3.dsv(",", "board_games.csv", function(d) {
+  return {
+    source: d.source,
+    target: d.target,
+    value: +d.value
+  }
+}).then(function(data) {
+
+  var links = data;
+  var colors = d3.scaleLinear() .domain([min_degree, max_degree]).range([0,255])
+  var pinned=[]
+  var nodes = {};
+
+  // compute the distinct nodes from the links.
+
+  links.forEach(function(link) {
+      link.source = nodes[link.source] || (nodes[link.source] = {name: link.source,degree:0});
+      link.target = nodes[link.target] || (nodes[link.target] = {name: link.target,degree:0});
+      link.source.degree+=1;
+      link.target.degree+=1;
+    
+
+  });
+  
+  degrees2=[]
+  Object.keys(nodes).map(function(key){
+    degrees2.push(nodes[key].degree);
+});
+
+var max_degree = Math.max(...degrees2);
+var min_degree = Math.min(...degrees2);
+var nodescale = d3.scalePow()
+  .exponent(0.1)
+  .domain([min_degree, max_degree])
+  .range([3, 50]);
+
+  console.log(nodes);
+
+
+  var width = 1200,
+      height = 700;
+
+  var force = d3.forceSimulation()
+      .nodes(d3.values(nodes))
+      
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
+      .force("charge", d3.forceManyBody().strength(-250))
+      .alphaTarget(1)
+      .on("tick", tick)
+
+    force.force("link", d3.forceLink(links).distance(100)).force('center', d3.forceCenter(width / 2, height / 2))
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height).text("mbhola3");
+
+  // add the links
+  var path = svg.append("g")
+      .selectAll("path")
+      .data(links)
+      .enter()
+      .append("path")
+      .attr("class", function(d) { console.log(d.value); if (d.value==0){return "link1 " + d.type} else{
+        return "link2 " + d.type
+
+      } });
+
+    console.log(path);
+
+  // define the nodes
+  var node = svg.selectAll(".node")
+      .data(force.nodes())
+      .enter().append("g")
+      .attr("class", "node")
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended)).style('fill', function(d) { if (!(d.name in pinned)) {var grad= (d.degree/max_degree)*255; var grad2= (min_degree/d.degree)*255;
+    return 'rgb(' + grad2 + ',' + 0 + ',' + grad + ')'} else {console.log(d);return 'rgb(' + 0 + ',' + 0 + ',' + grad + ')'};
+ })
+
+  // add the nodes
+  node.append("circle")
+      .attr("id", function(d){
+         return (d.name.replace(/\s+/g,'').toLowerCase());
+      })
+      .attr("r",function(d){
+        console.log(d.degree);
+        return nodescale(d.degree)
+
+      }).on("dblclick",onDblclick);
+
+    node.append("svg:text").text(function(d) { return d.name})
+  // add the curvy lines
+  function tick() {
+      path.attr("d", function(d) {
+          var dx = d.target.x - d.source.x,
+              dy = d.target.y - d.source.y,
+              dr = Math.sqrt(dx * dx + dy * dy);
+          return "M" +
+              d.source.x + "," +
+              d.source.y + "A" +
+              dr + "," + dr + " 0 0,1 " +
+              d.target.x + "," +
+              d.target.y;
+      });
+
+      node.attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")"; 
+      });
+  };
+
+  function dragstarted(d) {
+      if (!d3.event.active) force.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+  };
+
+  function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+  function dragended(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+    pinned.push(d.name);
+    var id_= d.name.replace(/\s+/g,'').toLowerCase()
+    var id_final = "#".concat(id_);
+    console.log(id_final);
+    d3.select(id_final).style('fill','red');
+}
+
+function onDblclick(d){
+  //alert("double_clicked");
+  var id_= d.name.replace(/\s+/g,'').toLowerCase()
+  var id_final = "#".concat(id_);
+  console.log(id_final);
+  d3.select(id_final).style('fill',function(d) { var grad= (d.degree/max_degree)*255; var grad2= (min_degree/d.degree)*255;
+    return 'rgb(' + grad2 + ',' + 0 + ',' + grad + ')';
+ });
+  if (!d3.event.active) force.alphaTarget(0.3);
+      if (d.fixed == true) {
+          d.fx = d.x;
+          d.fy = d.y;
+      }
+      else {
+          d.fx = null;
+          d.fy = null;
+      }
+  };
+
+  nodes.append("text")
+          .attr("text-anchor", "middle")
+          .style("font-size", "70px")
+          .text("mbhola3").attr("id","credit");
+
+}).catch(function(error) {
+  console.log(error);
+});
+
+</script>
+</body>
+</html>
