@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <!-- add title -->
+    
+    <!-- import required libraries here -->
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-dsv.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-tip.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-legend.min.js"></script>
+    <script type="text/javascript" src="../lib/topojson.v2.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-geo-projection.v2.min.js"></script>
+    
+    <style>
+        /* define CSS rules here */
+        select {
+            width: 25%;
+             height: 18px;
+  display: flex;
+        }
+    
+    </style>
+
+    <title></title>
+</head>
+
+
+<body>
+    <!-- Add heading for the visualization -->
+    
+    <!-- Create dropdown element here. Options should be added after reading in game file, they should not be created here.-->
+    
+    <!-- append visualization svg to this div-->
+    <div id="choropleth"></div>
+    <h2>Select Board game</h2>
+    <select id="gameDropdown"></select>
+
+    <script>
+    
+        // enter code to define margin and dimensions for svg
+        	// define margin and dimensions for svg
+         var margin = {top: 50, right: 20, bottom: 50, left: 50};
+    var width = 1000 - margin.left - margin.right;
+    var height = 500 - margin.top - margin.bottom;
+        
+        // enter code to create svg
+        
+        // enter code to create color scale
+        
+        // enter code to define tooltip
+        function isundefined(obj){
+            if (obj===undefined){
+                return true 
+            }
+
+            window.show_prop = (obj) =>{
+                if (isundefined(obj)){
+                    return "N/A"
+                }
+                else{
+                    return obj
+                }
+            }
+
+        }
+
+        var projection = d3.geoNaturalEarth()
+    
+var path = d3.geoPath()
+    .projection(projection);
+    var colors =  ["#edf8fb",
+"#b2e2e2",
+"#66c2a4",
+"#238b45"]
+
+        tip = d3.tip().attr('id', 'tooltip').html(function(d) { 
+            var rating = d.properties["Avg_rating"]=== undefined ? "N/A" : d.properties["Avg_rating"];
+            var users = d.properties["Users"]=== undefined ? "N/A" : d.properties["Users"];
+            console.log(d.properties.name + users)
+            // var game = selectedGame
+            return "<h4> Country: </h4>" + d.properties.name + "<br>" 
+                 + "<h4> Game:</h4>" + d.properties["Game"] +"<br>"
+                 + "<h4> Avg Rating:</h4>" + rating + "<br>"  
+                  +  "<h4> Number of Users: </h4>" + users})
+        
+        // enter code to define projection and path required for Choropleth
+        // For grading, set the name of functions for projection and path as "projection" and "path"
+        // var projection = 
+        // var path =
+
+
+        // define any other global variables 
+
+    var pathToCsv = "ratings-by-country.csv";
+   
+    data_points =[]
+    all_data =[]
+    d3.dsv(",", pathToCsv, function (d) {
+     
+        // format data attributes if required
+        all_data.push(d)
+        console.log(d["Game"])
+        data_points.push(d["Game"])
+        
+
+      
+    }).then(function (data) {
+        console.log(data);
+      var games = [... new Set(data_points)]; 
+
+
+    var svg = d3.select("body")
+            .append("svg").attr("id","choropleth")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("transform", "translate(" + margin.left + ", "+ 1.5*margin.bottom+")")
+            
+
+            var map= svg.append("g")
+            .attr("id","countries")
+            .attr("transform", "translate(-100,30)")
+            .selectAll("path")
+
+    console.log(all_data);
+      
+function create_filter(gameData,game){
+    filtered=  gameData.filter(function(d) { return d.Game === game; });
+    return filtered;
+}
+
+ 
+
+// Create new data with the selection?
+// var dataFilter = data.map(function(d){return {time: d.time, value:d[selectedGroup]} })
+
+
+// Map and projection
+
+    
+
+
+        dataset=[]
+        Promise.all([d3.json('world_countries.json'),d3.csv('ratings-by-country.csv').then(function(v1){
+            v1.forEach(element => { dataset.push(element)
+
+                
+            });
+
+            console.log(dataset);
+
+           
+})
+            // enter code to read files
+        ]).then(function(file){
+            console.log(dataset)
+            ready(null,file[0],dataset)
+
+            
+
+    
+
+     
+            // enter code to call ready() with required arguments
+
+
+    
+        })
+        
+
+
+        
+        
+        // this function should be called once the data from files have been read
+        // world: topojson from world_countries.json
+        // gameData: data from ratings-by-country.csv
+        
+        function ready(error, world, gameData) {
+            // enter code to extract all unique games from gameData
+            console.log(gameData);
+            console.log(world);
+            games=[]
+            gameData.forEach(e=>{
+                games.push(e["Game"])
+            })
+
+            var games_set = [... new Set(games)].sort(); 
+            console.log(games_set);
+
+
+          
+
+            
+           
+            map.data(world.features)
+            .enter().append("path")
+            .attr("d", path)
+
+            createMapAndLegend(world,gameData,games_set[0]);
+
+            d3.select("#gameDropdown")
+           .selectAll('myOptions')
+     	   .data(games_set)
+           .enter()
+    	   .append('option')
+           .text(function (d) { return d; })
+           .attr("value", function (d) {return d; }) // */
+
+        d3.select("#gameDropdown").attr("text","hello").on("change", function(d) {
+        var selectedOption = d3.select(this).property("value")
+        createMapAndLegend(world,gameData,selectedOption) })
+        
+        var game_of_interest=games_set[0]
+        function update(selectedGroup) {
+             filtered2=  gameData.filter(function(d) { return d.Game === selectedGroup; });
+             console.log(filtered2);
+             game_of_interest= selectedGroup;
+             console.log(game_of_interest)
+        }
+
+        
+
+
+        // createMapAndLegend(world,gameData,game_of_interest)
+
+    }
+
+            // enter code to append the game options to the dropdown
+            
+            // event listener for the dropdown. Update choropleth and legend when selection changes. Call createMapAndLegend() with required arguments.
+            
+            // create Choropleth with default option. Call createMapAndLegend() with required arguments. 
+        
+
+
+        // this function should create a Choropleth and legend using the world and gameData arguments for a selectedGame
+        // also use this function to update Choropleth and legend when a different game is selected from the dropdown
+
+        
+        function createMapAndLegend(world, gameData, selectedGame){ 
+            console.log(selectedGame);
+            var single_game_data= create_filter(gameData,selectedGame);
+            var avg_ratings =[]
+            var int_data={}
+            single_game_data.forEach(e=>{
+                avg_ratings.push(+e["Average Rating"])
+                e["Average Rating"] = +e["Average Rating"]
+            })
+            console.log(single_game_data)
+            avg_ratings2=[]
+
+            avg_ratings.forEach(n=>{n.toFixed(2); avg_ratings2.push(+n)})
+            console.log(avg_ratings2);
+
+            var color_scale = d3.scaleQuantile()
+            .range(colors)
+            .domain(avg_ratings2);
+
+            console.log(color_scale.domain)
+
+            console.log(color_scale(7.7));
+           var f= single_game_data.filter((a)=> {
+                return a["Average Rating"]<8
+            });
+
+            console.log(f);
+
+
+            svg.call(tip);
+
+            var count =0
+            
+            d3.selectAll("path").style("fill",  function(d){ 
+                var show_data=[]
+                for (let i = 0; i < single_game_data.length; i++) {
+                    if (d.properties.name == single_game_data[i]["Country"]) { 
+                        if (color_scale(single_game_data[i]["Average Rating"])==="#edf8fb"){
+                            count+=1
+                            console.log(count)
+                        }
+                       
+                        return color_scale(single_game_data[i]["Average Rating"]);
+                    }
+                }    
+                return "grey";
+                console.log(count)}).on("mouseover", function(d){
+                //show_data.push({"name": single_game_data[i]["Country"],"rating": single_game_data[i]["Average Rating"]})
+                console.log(selectedGame)
+                for (let i = 0; i < single_game_data.length; i++) {
+                d.properties["Game"] =  selectedGame;
+                console.log(d.properties["Game"]);
+                if (d.properties.name === single_game_data[i]["Country"]){
+                d.properties["Users"] = single_game_data[i]["Number of Users"];
+                d.properties['Avg_rating'] = single_game_data[i]["Average Rating"];
+                }
+                console.log(d.properties)
+                
+                
+                
+                    
+                    tip.show(d);
+                  
+
+                }
+            }).on('mouseout', tip.hide)  
+
+
+    svg.append("g")
+    .attr("id", "legend")
+    .attr("transform", "translate(800,0)");
+
+    var legend = d3.legendColor()
+    .shapeWidth(30)
+    .orient('vertical')
+    .scale(color_scale)
+
+    svg.select("#legend")
+    .call(legend);
+
+        
+            
+        }
+        // console.log(filtered_)
+        
+    }).catch(function (error) {
+      console.log(error);
+    });
+
+    </script>
+
+</body>
+
+</html>
